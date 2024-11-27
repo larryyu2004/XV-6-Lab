@@ -442,7 +442,7 @@ static char *prefix[] = {
 void vmprint(pagetable_t pagetable, uint64 depth){
   if(depth > 2) return;
   if(depth == 0){
-    printf("page table%p\n", pagetable);
+    printf("page table %p\n", pagetable);
   }
   char* buf = prefix[depth];
 
