@@ -434,9 +434,9 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 }
 
 static char *prefix[] = {
-  [0] = '..',
-  [1] = '.. ..',
-  [2] = '.. .. ..',
+  [0] = "..",
+  [1] = ".. ..",
+  [2] = ".. .. ..",
 };
 
 void vmprint(pagetable_t pagetable, uint64 depth){
