@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -94,4 +95,36 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+//Add a sys_trace() function in kernel/sysproc.c that implements the new system call by remembering its argument in a new variable in the proc structure (see kernel/proc.h). The functions to retrieve system call arguments from user space are in kernel/syscall.c, and you can see examples of their use in kernel/sysproc.c. 
+uint64
+sys_trace(void)
+{
+  int mask;
+  //Fetch the mask argument from user space
+  if(argint(0, &mask) < 0)
+    return -1;
+
+  //Get the current process
+  //myproc() is a function that retrieves the current process's proc (a data structure that represents a process) structure
+  struct proc *p = myproc();
+  //Set the trace mask in the process structure
+  p->trace_mask = mask;
+  
+  return 0;
+}
+
+uint64 sys_sysinfo(void){
+  struct sysinfo info;
+  uint64 addr;
+  struct proc *p = myproc();
+
+  info.nproc = acquire_nproc();
+  info.freemem = acquire_freemen();
+  
+  if(argaddr(0, &addr) < 0)
+    return -1;
+  if(copyout(p->pagetable, addr, (char *)&info, sizeof(info)) < 0)
+    return -1;
+  return 0;
 }
