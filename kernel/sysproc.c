@@ -81,6 +81,26 @@ int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+  uint64 addr;
+  int len;
+  int bitmask;
+  if(argaddr(0, &addr) < 0){
+    return -1;
+  }
+  if(argint(1, &len) < 0){
+    return -1;
+  }
+  if(argint(2, &bitmask) < 0){
+    return -1;
+  }
+
+  struct proc *p = myproc();
+  int res = 0x1111;
+  if(copyout(p->pagetable, bitmask, (char*)&res, sizeof(res)) < 0){
+    return -1;
+  }
+
+
   return 0;
 }
 #endif
