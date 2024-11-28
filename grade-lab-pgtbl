@@ -25,7 +25,7 @@ INDENT_ESC = "\\\s*\.\.\\\s*"
 def test_pgtbltest():
     r.run_qemu(shell_script([
         'pgtbltest'
-    ]), timeout=600)
+    ]), timeout=300)
 
 @test(10, "pgtbltest: ugetpid", parent=test_pgtbltest)
 def test_nettest_():
