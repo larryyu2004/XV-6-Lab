@@ -209,7 +209,7 @@ proc_pagetable(struct proc *p)
 
   //todo: map the usyscall just below TRAPFRAME
   if(mappages(pagetable, USYSCALL, PGSIZE,
-              (uint64)(p->usyscall), PTE_R | PTE_U) < 0){
+              (uint64)(p->usyscall), PTE_R | PTE_U | PTE_W) < 0){
     uvmunmap(pagetable, USYSCALL, 1, 0);
     uvmunmap(pagetable, TRAPFRAME, 1, 0);
     uvmfree(pagetable, 0);
