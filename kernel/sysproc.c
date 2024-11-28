@@ -93,9 +93,18 @@ sys_pgaccess(void)
   if(argint(2, &bitmask) < 0){
     return -1;
   }
-
+  if(len > 32 || len < 0){
+    return -1;
+  }
   struct proc *p = myproc();
-  int res = 0x1111;
+  int res = 0;
+  for(int i = 0; i < len; i++){
+    int va = addr + i*PGSIZE;
+    int abit = vm_pgaccess(p->pagetable, va);
+    res = res | abit << i;
+  }
+
+  
   if(copyout(p->pagetable, bitmask, (char*)&res, sizeof(res)) < 0){
     return -1;
   }

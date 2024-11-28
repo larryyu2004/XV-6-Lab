@@ -455,3 +455,19 @@ void vmprint(pagetable_t pagetable, uint64 depth){
     }
   }
 }
+
+int vm_pgaccess(pagetable_t pagetable, int va){
+  pte_t *pte;
+
+  if(va >= MAXVA)
+    return 0;
+
+  pte = walk(pagetable, va, 0);
+  if(pte == 0)
+    return 0;
+  if((*pte & PTE_A) != 0){
+    *pte = *pte & (~PTE_A); //clear 6th flag (PTE_A)
+    return 1;
+  }
+  return 0;
+}
