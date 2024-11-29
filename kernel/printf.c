@@ -141,7 +141,7 @@ backtrace()
   uint64 *frame = (uint64*) fp;
 
   uint64 up = PGROUNDUP(fp);
-  uint64 down = PGROUNDDOWN(down);
+  uint64 down = PGROUNDDOWN(fp);
   while(fp < up && fp > down){
     // print current fp
     printf("frame[-1]: %p\n", frame[-1]);
