@@ -140,7 +140,8 @@ backtrace()
   uint64 fp = r_fp();
 
   uint64 *frame = (uint64*) fp;
+  printf("%p\n", fp);
   printf("frame[-1]: %p\n", frame[-1]);
   printf("frame[-2]: %p\n", frame[-2]);
-  printf("%p\n", fp);
+  
 }
