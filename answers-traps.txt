@@ -8,4 +8,5 @@
 
 5. HE110 World No
 
-6. 
+printf("x=%d y=%d", 3);
+6. Since x is stored in a1, y didn't be stored in a2, so it will print garbage value
