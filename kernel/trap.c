@@ -29,43 +29,6 @@ trapinithart(void)
   w_stvec((uint64)kernelvec);
 }
 
-void 
-store()
-{
-  struct proc *p = myproc();
-  p->tick_ra = p->trapframe->ra;
-  p->tick_sp = p->trapframe->sp;
-  p->tick_gp = p->trapframe->gp;
-  p->tick_tp = p->trapframe->tp;
-  p->tick_t0 = p->trapframe->t0;
-  p->tick_t1 = p->trapframe->t1;
-  p->tick_t2 = p->trapframe->t2;
-  p->tick_s0 = p->trapframe->s0;
-  p->tick_s1 = p->trapframe->s1;
-  p->tick_a0 = p->trapframe->a0;
-  p->tick_a1 = p->trapframe->a1;
-  p->tick_a2 = p->trapframe->a2;
-  p->tick_a3 = p->trapframe->a3;
-  p->tick_a4 = p->trapframe->a4;
-  p->tick_a5 = p->trapframe->a5;
-  p->tick_a6 = p->trapframe->a6;
-  p->tick_a7 = p->trapframe->a7;
-  p->tick_s2 = p->trapframe->s2;
-  p->tick_s3 = p->trapframe->s3;
-  p->tick_s4 = p->trapframe->s4;
-  p->tick_s5 = p->trapframe->s5;
-  p->tick_s6 = p->trapframe->s6;
-  p->tick_s7 = p->trapframe->s7;
-  p->tick_s8 = p->trapframe->s8;
-  p->tick_s9 = p->trapframe->s9;
-  p->tick_s10 = p->trapframe->s10;
-  p->tick_s11 = p->trapframe->s11;
-  p->tick_t3 = p->trapframe->t3;
-  p->tick_t4 = p->trapframe->t4;
-  p->tick_t5 = p->trapframe->t5;
-  p->tick_t6 = p->trapframe->t6;
-  
-}
 
 //
 // handle an interrupt, exception, or system call from user space.
@@ -117,17 +80,19 @@ usertrap(void)
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2){
     //todo
-    if(p->ticks != 0){
-      p->ticks_cnt++;
-      if(p->handler_executing == 0 && p->ticks_cnt > p->ticks){
-        p->ticks_cnt = 0;
+    if(p->alarm_interval != 0){
+      if(--p->alarm_ticks <= 0){
+        if(!p->alarm_goingoff){
+          p->alarm_ticks = p->alarm_interval;
+          //jump to execute alarm_handler
 
-        p->tick_epc = p->trapframe->epc;
-        store();
-        p->handler_executing = 1;
-        p->trapframe->epc = p->handler;
+          *p->alarm_trapframe = *p->trapframe;
+          p->trapframe->epc = (uint64)p->alarm_handler;
+          p->alarm_goingoff = 1;
+        }
       }
     }
+    
     yield();
   }
     
@@ -270,3 +235,17 @@ devintr()
   }
 }
 
+int sigalarm(int ticks, void(*handler)()){
+  struct proc *p = myproc();
+  p->alarm_interval = ticks;
+  p->alarm_handler = handler;
+  p->alarm_ticks = ticks;
+  return 0;
+}
+
+int sigreturn(){
+  struct proc *p = myproc();
+  *p->trapframe= *p->alarm_trapframe;
+  p->alarm_goingoff = 0;
+  return 0;
+}
