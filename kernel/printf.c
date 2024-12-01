@@ -135,8 +135,6 @@ printfinit(void)
 }
 
 void backtrace() {
-    printf("backtrace:\n");
-
     uint64 fp = r_fp();  // Get current frame pointer
     uint64 *frame = (uint64 *)fp;
 
@@ -144,35 +142,22 @@ void backtrace() {
     uint64 stack_base = PGROUNDUP(fp);
     uint64 stack_limit = PGROUNDDOWN(fp);
 
-    int count = 0; // Count valid return addresses
-
     while (fp) {
-        // Ensure the frame pointer is aligned
-        if (fp % sizeof(uint64) != 0) {
-            printf("Unaligned frame pointer: %p\n", fp);
-            break;
-        }
-
-        // Validate frame pointer within bounds
-        if ((uint64)frame < stack_limit || (uint64)frame >= stack_base) {
-            printf("Frame pointer out of bounds: %p\n", fp);
+        // Validate frame pointer alignment and bounds
+        if (fp % sizeof(uint64) != 0 || (uint64)frame < stack_limit || (uint64)frame >= stack_base) {
             break;
         }
 
         // Print the return address
-        printf("return address: %p\n", frame[-1]);
-        count++;
+        printf("%p\n", frame[-1]);
 
         // Move to the previous frame pointer
         uint64 prev_fp = frame[-2];
         if (prev_fp <= fp || (prev_fp < stack_limit || prev_fp >= stack_base)) {
-            printf("Invalid or circular frame pointer: %p\n", prev_fp);
             break;
         }
 
         fp = prev_fp;
         frame = (uint64 *)fp;
     }
-
-    printf("Total return addresses: %d\n", count);
 }
