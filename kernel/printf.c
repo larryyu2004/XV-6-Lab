@@ -140,6 +140,10 @@ void backtrace() {
     uint64 fp = r_fp();                 // Read the current frame pointer
     uint64 *frame = (uint64 *)fp;       // Interpret as a pointer to uint64
 
+    // Define reasonable stack bounds (replace with actual values if known)
+    uint64 stack_base = PGROUNDUP(fp);
+    uint64 stack_limit = PGROUNDDOWN(fp);
+
     while (fp) {
         // Ensure the frame pointer is aligned
         if (fp % sizeof(uint64) != 0) {
@@ -147,8 +151,8 @@ void backtrace() {
             break;
         }
 
-        // Validate frame pointer is within reasonable bounds
-        if ((uint64)frame < PGROUNDDOWN(fp) || (uint64)frame >= PGROUNDUP(fp)) {
+        // Validate frame pointer is within valid stack bounds
+        if ((uint64)frame < stack_limit || (uint64)frame >= stack_base) {
             printf("Frame pointer out of bounds: %p\n", fp);
             break;
         }
@@ -158,7 +162,7 @@ void backtrace() {
 
         // Move to the previous frame pointer
         uint64 prev_fp = frame[-2];
-        if (prev_fp <= fp) {  // Ensure stack traversal progresses upward
+        if (prev_fp <= fp || (prev_fp < stack_limit || prev_fp >= stack_base)) {
             printf("Invalid or circular frame pointer: %p\n", prev_fp);
             break;
         }
