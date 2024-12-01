@@ -48,9 +48,10 @@ kfree(void *pa)
 {
   struct run *r;
 
-  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP){
+    printf("Error: Address %p is not page-aligned.\n", pa);
     panic("kfree");
-  printf("Freeing memory at %p\n", pa);
+  }
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
 
