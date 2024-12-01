@@ -134,21 +134,25 @@ printfinit(void)
   pr.locking = 1;
 }
 
-void
-backtrace()
-{
-  printf("backtrace:\n");
-  uint64 fp = r_fp();
-  uint64 *frame = (uint64*) fp;
+void backtrace() {
+    printf("backtrace:\n");
+    uint64 fp = r_fp();
+    uint64 *frame = (uint64*) fp;
 
-  uint64 up = PGROUNDUP(fp);
-  uint64 down = PGROUNDDOWN(fp);
-  while(fp < up && fp > down){
-    // print current fp
-    printf("frame[-1]: %p\n", frame[-1]);
-    // update prev frame
-    fp = frame[-2];
-    frame = (uint64*) fp;
-  }
-  
+    uint64 up = PGROUNDUP(fp);
+    uint64 down = PGROUNDDOWN(fp);
+
+    while(fp && frame >= (uint64*) down && frame < (uint64*) up) {
+        if(fp % sizeof(uint64) != 0) {
+            printf("Unaligned frame pointer: %p\n", fp);
+            break;
+        }
+
+        // Print return address
+        printf("return address: %p\n", frame[-1]);
+
+        // Update to the previous frame
+        fp = frame[-2];
+        frame = (uint64*) fp;
+    }
 }
