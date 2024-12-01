@@ -135,9 +135,12 @@ found:
     return 0;
   }
 
-  p->alarm_trapframe = (struct trapframe *)kalloc();
-  if (p->alarm_trapframe == 0) {
-    freeproc(p);
+  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+    release(&p->lock);
+    return 0;
+  }
+
+  if((p->alarm_trapframe = (struct trapframe *)kalloc()) == 0){
     release(&p->lock);
     return 0;
   }
@@ -182,12 +185,13 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
-  p->state = UNUSED;
+  
 
   p->alarm_handler = 0;
   p->alarm_goingoff = 0;
   p->alarm_interval = 0;
   p->alarm_ticks = 0;
+  p->state = UNUSED;
 
 }
 
