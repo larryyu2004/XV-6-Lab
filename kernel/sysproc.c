@@ -97,6 +97,10 @@ sys_uptime(void)
   return xticks;
 }
 
+extern int sigalarm(int ticks, void(*handler)());
+extern int sigreturn();
+
+
 uint64 
 sys_sigalarm(void)
 {
