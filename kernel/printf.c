@@ -139,10 +139,8 @@ void backtrace() {
     uint64 fp = r_fp();
     uint64 *frame = (uint64*) fp;
 
-    uint64 up = PGROUNDUP(fp);
-    uint64 down = PGROUNDDOWN(fp);
-
-    while(fp && frame >= (uint64*) down && frame < (uint64*) up) {
+    while(fp) {
+        // Validate frame pointer alignment
         if(fp % sizeof(uint64) != 0) {
             printf("Unaligned frame pointer: %p\n", fp);
             break;
@@ -151,8 +149,14 @@ void backtrace() {
         // Print return address
         printf("return address: %p\n", frame[-1]);
 
-        // Update to the previous frame
-        fp = frame[-2];
+        // Move to the previous frame
+        uint64 prev_fp = frame[-2];
+        if(prev_fp <= fp) {  // Ensure progress in the stack walk
+            printf("Invalid or circular frame pointer: %p\n", prev_fp);
+            break;
+        }
+
+        fp = prev_fp;
         frame = (uint64*) fp;
     }
 }
