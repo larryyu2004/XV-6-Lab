@@ -135,10 +135,7 @@ found:
     return 0;
   }
 
-  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
-    release(&p->lock);
-    return 0;
-  }
+  
 
   if((p->alarm_trapframe = (struct trapframe *)kalloc()) == 0){
     release(&p->lock);
