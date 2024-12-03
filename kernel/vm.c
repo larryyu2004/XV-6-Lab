@@ -439,7 +439,7 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
-struct proc;
+
 
 int uvmcheckcowpage(uint64 va) {
   pte_t *pte;
