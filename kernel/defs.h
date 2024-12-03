@@ -174,7 +174,6 @@ int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 int             uvmcheckcowpage(uint64);
 int             uvmcowcopy(uint64);
-void            incr(void*);
 
 // plic.c
 void            plicinit(void);
