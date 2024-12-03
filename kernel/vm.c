@@ -459,7 +459,7 @@ uvmcowcopy(uint64 va)
   pte_t *pte;
   struct proc *p = myproc();
   if((pte = walk(p->pagetable, va, 0)) == 0){
-    painc("uvmcowcopy: walk!");
+    panic("uvmcowcopy: walk!");
   }
   uint64 pa = PTE2PA(*pte);
   uint64 new = (uint64)kcopy_n_deref((void*)pa);
