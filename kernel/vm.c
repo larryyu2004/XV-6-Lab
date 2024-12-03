@@ -5,7 +5,6 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
-#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -440,6 +439,7 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+struct proc;
 
 int uvmcheckcowpage(uint64 va) {
   pte_t *pte;
