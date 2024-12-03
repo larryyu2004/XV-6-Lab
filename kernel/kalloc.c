@@ -21,60 +21,59 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
-  char* ref_page;
-  int page_cnt;
-  char* end_;
+  // char* ref_page;
+  // int page_cnt;
+  // char* end_;
 } kmem;
 
+#define PA2PGREF_ID(p) (((p)-KERNBASE)/PGSIZE)
+#define PGREF_MAX_ENTRIES PA2PGREF_ID(PHYSTOP)
+struct spinlock pgreflock;
+int pageref[PGREF_MAX_ENTRIES];
 
-int pagecnt(void *pa_start, void *pa_end){
-  char *p;
-  int cnt = 0;
-  p = (char*)PGROUNDUP((uint64)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
-    cnt++;
-  return cnt;
-}
+#define PA2PGREF(p) pageref[PA2PGREF_ID((uint64)(p))]
+
+
+// int pagecnt(void *pa_start, void *pa_end){
+//   char *p;
+//   int cnt = 0;
+//   p = (char*)PGROUNDUP((uint64)pa_start);
+//   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+//     cnt++;
+//   return cnt;
+// }
 
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
-  kmem.page_cnt = pagecnt(end, (void *)PHYSTOP);
-  printf("page_cnt: %d\n", kmem.page_cnt);\
-  
-  kmem.ref_page = end;
-  for(int i = 0; i < kmem.page_cnt; i++){
-    kmem.ref_page[i] = 0;
-  }
-  kmem.end_ = kmem.ref_page + kmem.page_cnt;
-
-  freerange(kmem.end_, (void*)PHYSTOP);
+  initlock(&pgreflock, "pgref");
+  freerange(end, (void*)PHYSTOP);
 }
 
-int page_index(uint64 pa){
-  pa = PGROUNDDOWN(pa);
-  int res = (pa - (uint64) kmem.end_)/PGSIZE;
-  if(res < 0 || res >= kmem.page_cnt){
-    panic("page_index illegal");
-  }
-  return res;
-}
+// int page_index(uint64 pa){
+//   pa = PGROUNDDOWN(pa);
+//   int res = (pa - (uint64) kmem.end_)/PGSIZE;
+//   if(res < 0 || res >= kmem.page_cnt){
+//     panic("page_index illegal");
+//   }
+//   return res;
+// }
 
-void
-incr(void* pa){
-  int index = page_index((uint64)pa);
-  acquire(&kmem.lock);
-  kmem.ref_page[index]++;
-  release(&kmem.lock);
-}
+// void
+// incr(void* pa){
+//   int index = page_index((uint64)pa);
+//   acquire(&kmem.lock);
+//   kmem.ref_page[index]++;
+//   release(&kmem.lock);
+// }
 
-void desc(void* pa){
-  int index = page_index((uint64)pa);
-  acquire(&kmem.lock);
-  kmem.ref_page[index]--;
-  release(&kmem.lock);
-}
+// void desc(void* pa){
+//   int index = page_index((uint64)pa);
+//   acquire(&kmem.lock);
+//   kmem.ref_page[index]--;
+//   release(&kmem.lock);
+// }
 
 void
 freerange(void *pa_start, void *pa_end)
@@ -92,25 +91,30 @@ freerange(void *pa_start, void *pa_end)
 void
 kfree(void *pa)
 {
-  int index = page_index((uint64)pa);
-  if(kmem.ref_page[index] > 1){
-    desc(pa);
-    return ;
-  }
+  // int index = page_index((uint64)pa);
+  // if(kmem.ref_page[index] > 1){
+  //   desc(pa);
+  //   return ;
+  // }
   struct run *r;
 
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
 
-  // Fill with junk to catch dangling refs.
-  memset(pa, 1, PGSIZE);
+  acquire(&pgreflock);
+  if(--PA2PGREF(pa) <= 0){
 
-  r = (struct run*)pa;
+    // Fill with junk to catch dangling refs.
+    memset(pa, 1, PGSIZE);
 
-  acquire(&kmem.lock);
-  r->next = kmem.freelist;
-  kmem.freelist = r;
-  release(&kmem.lock);
+    r = (struct run*)pa;
+
+    acquire(&kmem.lock);
+    r->next = kmem.freelist;
+    kmem.freelist = r;
+    release(&kmem.lock);
+  }
+  release(&pgreflock);
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -129,6 +133,34 @@ kalloc(void)
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
-  incr(r);
+    PA2PGREF(r);
+  //incr(r);
   return (void*)r;
+}
+
+void *kcopy_n_deref(void* pa){
+  acquire(&pgreflock);
+
+  if(PA2PGREF(pa) <= 1){
+    release(&pgreflock);
+    return pa;
+  }
+
+  uint64 newpa = (uint64)kalloc();
+  if(newpa == 0){
+    release(&pgreflock);
+    return 0;
+  }
+  memmove((void*)newpa, (void*)pa, PGSIZE);
+
+  PA2PGREF(pa)--;
+
+  release(&pgreflock);
+  return (void*)newpa;
+}
+
+void krefpage(void* pa){
+  acquire(&pgreflock);
+  PA2PGREF(pa)++;
+  release(&pgreflock);
 }

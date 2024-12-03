@@ -5,6 +5,7 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "proc.h"
 
 /*
  * the kernel's page table.
@@ -324,7 +325,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       //kfree(mem);
       goto err;
     }
-    incr((void*)pa);
+    krefpage((void*)pa);
   }
   return 0;
 
@@ -356,6 +357,9 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
+    if(uvmcheckcowpage(dstva)){
+      uvmcowcopy(dstva);
+    }
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
@@ -439,46 +443,58 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   }
 }
 
-int
-is_cow_fault(pagetable_t pagetable, uint64 va)
-{
-  va = PGROUNDDOWN(va);
-  pte_t *pte = walk(pagetable, va, 0);
-  if(pte == 0)
-    return 0;
-  if((*pte & PTE_V) == 0)
-    return 0;
-  if((*pte & PTE_U) == 0)
-    return 0;
-  if(*pte & PTE_COW){
-    return 1;
-  }
-  return 0;
+int uvmcheckcowpage(uint64 va) {
+  pte_t *pte;
+  struct proc *p = myproc();
+  
+  return va < p->sz 
+    && ((pte = walk(p->pagetable, va, 0))!=0)
+    && (*pte & PTE_V)
+    && (*pte & PTE_COW);
 }
 
 int
-cow_alloc(pagetable_t pagetable, uint64 va)
+uvmcowcopy(uint64 va)
 {
-  va = PGROUNDDOWN(va);
-  pte_t *pte = walk(pagetable, va, 0);
+  pte_t *pte;
+  struct proc *p = myproc();
+  if((pte = walk(p->pagetable, va, 0)) == 0){
+    painc("uvmcowcopy: walk!");
+  }
   uint64 pa = PTE2PA(*pte);
-  int flag = PTE_FLAGS(*pte);
-
-  char* mem = kalloc();
-  if(mem == 0){
+  uint64 new = (uint64)kcopy_n_deref((void*)pa);
+  if(new == 0){
     return -1;
   }
 
-  memmove(mem, (char*) pa, PGSIZE);
-  uvmunmap(pagetable, va, 1, 1);
+  uint64 flags = (PTE_FLAGS(*pte) | PTE_W) & PTE_COW;
+  uvmunmap(p->pagetable, va, 1, 0);
+  if(mappages(p->pagetable, va, 1, new, flags)){
+    return -1;
+  }
+  return 0;
+
+  // va = PGROUNDDOWN(va);
+  // pte_t *pte = walk(pagetable, va, 0);
+  // uint64 pa = PTE2PA(*pte);
+  // int flag = PTE_FLAGS(*pte);
+
+  // char* mem = kalloc();
+  // if(mem == 0){
+  //   return -1;
+  // }
+
+  // memmove(mem, (char*) pa, PGSIZE);
+  // uvmunmap(pagetable, va, 1, 1);
 
   
-  flag &= ~(PTE_COW);
-  flag |= PTE_W;
-  if(mappages(pagetable, va, PGSIZE, (uint64) mem, flag) < 0){
-    kfree(mem);
-    return -1;
-  }
+  // flag &= ~(PTE_COW);
+  // flag |= PTE_W;
+  // if(mappages(pagetable, va, PGSIZE, (uint64) mem, flag) < 0){
+  //   kfree(mem);
+  //   return -1;
+  // }
 
-  return 0;
+  // return 0;
 }
+
