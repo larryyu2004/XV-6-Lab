@@ -1,3 +1,4 @@
+struct cpu;
 // Mutual exclusion lock.
 struct spinlock {
   uint64 locked;       // Is the lock held?
