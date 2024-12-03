@@ -29,7 +29,7 @@ struct {
 
 int pagecnt(void *pa_start, void *pa_end){
   char *p;
-  int cnt;
+  int cnt = 0;
   p = (char*)PGROUNDUP((uint64)pa_start);
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     cnt++;
