@@ -23,10 +23,22 @@ struct {
   struct run *freelist;
 } kmem;
 
+int page_cnt;
+
+int pagecnt(void *pa_start, void *pa_end){
+  char *p;
+  p = (char*)PGROUNDUP((uint64)pa_start);
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+    page_cnt++;
+  return page_cnt;
+}
+
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
+  page_cnt = pagecnt(end, (void *)PHYSTOP);
+  printf("page_cnt: %d\n", page_cnt);
   freerange(end, (void*)PHYSTOP);
 }
 
