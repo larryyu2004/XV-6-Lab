@@ -106,3 +106,9 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 };
+
+struct spinlock {
+    uint locked;
+    char *name;
+    struct cpu *cpu;
+};
