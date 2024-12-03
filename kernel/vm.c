@@ -153,7 +153,6 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
       panic("mappages: remap");
     *pte = PA2PTE(pa) | perm | PTE_V;
 
-    incr((void*)pa);
 
     if(a == last)
       break;
