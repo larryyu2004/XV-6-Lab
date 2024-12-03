@@ -8,6 +8,7 @@
 #include "spinlock.h"
 #include "riscv.h"
 #include "defs.h"
+#include "proc.h"
 // kernel/kalloc.c
 
 // 用于访问物理页引用计数数组
