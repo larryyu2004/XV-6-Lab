@@ -133,7 +133,7 @@ kalloc(void)
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
-    PA2PGREF(r);
+    PA2PGREF(r) = 1;
   //incr(r);
   return (void*)r;
 }
