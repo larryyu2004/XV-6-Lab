@@ -172,6 +172,7 @@ int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
 int             is_cow_fault(pagetable_t, uint64);
 int             cow_alloc(pagetable_t, uint64);
+void            incr(void*);
 
 // plic.c
 void            plicinit(void);
