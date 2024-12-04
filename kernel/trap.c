@@ -67,7 +67,7 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if(r_scause() == 13 || r_scause == 15){
+  } else if(r_scause() == 13 || r_scause() == 15){
     pte_t *pte;
     uint64 addr = r_stval();
     addr = PGROUNDDOWN(addr);
