@@ -367,6 +367,33 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
       return -1;
+
+    pte_t *pte;
+    if((pte) = walk(pagetable, va0, 0) == 0){
+      return -1;
+    }
+    if(*pte & PTE_COW){
+      char *mem;
+      uint flags;
+      if(refNum[(pa0 - KERNBASE)/PGSIZE] == 2){
+        *pte = *pte | PTE_W;
+        *pte = *pte & ~PTE_COW;
+      }else{
+        if((mem = kalloc()) == 0){
+          return -1;
+        }else{
+          refNum[(pa0 - KERNBASE)/PGSIZE] -= 1;
+          memmove(mem, (char*)pa0, PGSIZE);
+          *pte = *pte | PTE_W;
+          *pte = *pte & ~PTE_COW;
+          flags = PTE_FLAGS(*pte);
+          *pte = PA2PTE((uint64) mem) | flags;
+          refNum[(pa0 - KERNBASE)/PGSIZE] += 1;
+          pa0 = (uint64)mem;
+        }
+      }
+    }
+    
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -393,31 +420,7 @@ copyin(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len)
     if(pa0 == 0)
       return -1;
     
-    pte_t *pte;
-    if((pte) = walk(pagetable, va0, 0) == 0){
-      return -1;
-    }
-    if(*pte & PTE_COW){
-      char *mem;
-      uint flags;
-      if(refNum[(pa0 - KERNBASE)/PGSIZE] == 2){
-        *pte = *pte | PTE_W;
-        *pte = *pte & ~PTE_COW;
-      }else{
-        if((mem = kalloc()) == 0){
-          return -1;
-        }else{
-          refNum[(pa0 - KERNBASE)/PGSIZE] -= 1;
-          memmove(mem, (char*)pa0, PGSIZE);
-          *pte = *pte | PTE_W;
-          *pte = *pte & ~PTE_COW;
-          flags = PTE_FLAGS(*pte);
-          *pte = PA2PTE((uint64) mem) | flags;
-          refNum[(pa0 - KERNBASE)/PGSIZE] += 1;
-          pa0 = (uint64)mem;
-        }
-      }
-    }
+    
 
     
 
