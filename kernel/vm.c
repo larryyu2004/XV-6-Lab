@@ -369,7 +369,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
       return -1;
 
     pte_t *pte;
-    if((pte) = walk(pagetable, va0, 0) == 0){
+    if((pte = walk(pagetable, va0, 0)) == 0){
       return -1;
     }
     if(*pte & PTE_COW){
