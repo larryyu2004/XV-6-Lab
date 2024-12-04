@@ -90,7 +90,7 @@ usertrap(void)
           *pte = *pte & ~PTE_COW;
           flags = PTE_FLAGS(*pte);
           *pte = PA2PTE((uint64)mem) | flags;
-          refNum[(pa-KERNBASE)/PGSIZE] += 1;
+          refNum[((uint64)mem-KERNBASE)/PGSIZE] += 1;
         }
       }
     }

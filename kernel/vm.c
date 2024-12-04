@@ -142,8 +142,8 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   uint64 a, last;
   pte_t *pte;
 
-  if(size == 0)
-    panic("mappages: size");
+  // if(size == 0)
+  //   panic("mappages: size");
   
   a = PGROUNDDOWN(va);
   last = PGROUNDDOWN(va + size - 1);
@@ -151,7 +151,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
     if(*pte & PTE_V)
-      panic("mappages: remap");
+      panic("remap");
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(pa >= KERNBASE){
       refNum[(pa-KERNBASE)/PGSIZE] += 1;
@@ -190,7 +190,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     }
 
     if(do_free){
-      if(refNum[(pa - KERNBASE)/PGSIZE] == 1){
+      if(refNum[((uint64)pa - KERNBASE)/PGSIZE] == 1){
         kfree((void*)pa);
       }
     }
@@ -329,7 +329,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     // if((mem = kalloc()) == 0)
     //   goto err;
     // memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
       //kfree(mem);
       goto err;
     }
@@ -388,7 +388,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
           *pte = *pte & ~PTE_COW;
           flags = PTE_FLAGS(*pte);
           *pte = PA2PTE((uint64) mem) | flags;
-          refNum[(pa0 - KERNBASE)/PGSIZE] += 1;
+          refNum[((uint64)mem - KERNBASE)/PGSIZE] += 1;
           pa0 = (uint64)mem;
         }
       }
