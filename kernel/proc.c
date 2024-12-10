@@ -451,7 +451,10 @@ scheduler(void)
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
+
+        //set p's state to RUNNING
         p->state = RUNNING;
+        //save scheduler's contexts and load p's contexts
         c->proc = p;
         swtch(&c->context, &p->context);
 
