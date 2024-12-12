@@ -1,0 +1,1 @@
+Because there may be two key, they are not in the hashtable, when they do inset together, k1 may overwrite k2 and vice versa
