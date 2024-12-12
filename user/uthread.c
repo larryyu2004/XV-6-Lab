@@ -10,7 +10,7 @@
 #define STACK_SIZE  8192
 #define MAX_THREAD  4
 
-//TODO
+//TODO, Uthread: switching between threads
 struct context {
   uint64 ra;
   uint64 sp;
@@ -30,15 +30,15 @@ struct context {
   uint64 s11;
 };
 
-//TODO
+//TODO, Uthread: switching between threads
 
 struct thread {
   char       stack[STACK_SIZE]; /* the thread's stack */
   int        state;             /* FREE, RUNNING, RUNNABLE */
-  //TODO
+  //TODO, Uthread: switching between threads
   struct context ctx;
   
-  //TODO
+  //TODO, Uthread: switching between threads
 };
 struct thread all_thread[MAX_THREAD];
 struct thread *current_thread;
@@ -87,9 +87,9 @@ thread_schedule(void)
      * Invoke thread_switch to switch from t to next_thread:
      * thread_switch(??, ??);
      */
-    //TODO
+    //TODO, Uthread: switching between threads
     thread_switch((uint64) &t->ctx, (uint64) &next_thread->ctx);
-    //TODO
+    //TODO, Uthread: switching between threads
   } else
     next_thread = 0;
 }
@@ -104,11 +104,11 @@ thread_create(void (*func)())
   }
   t->state = RUNNABLE;
   // YOUR CODE HERE
-  //TODO
+  //TODO, Uthread: switching between threads
   t->ctx.ra = (uint64) func;
   // sp register should be at top of the stack 
   t->ctx.sp = (uint64) &t->stack + (STACK_SIZE-1);
-  //TODO
+  //TODO, Uthread: switching between threads
 }
 
 void 

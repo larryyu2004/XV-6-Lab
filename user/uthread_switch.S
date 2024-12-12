@@ -8,7 +8,7 @@
 	.globl thread_switch
 thread_switch:
 	/* YOUR CODE HERE */
-	#TODO
+	#TODO, Uthread: switching between threads
 	sd ra, 0(a0)
 	sd sp, 8(a0)
 	sd s0, 16(a0)
@@ -38,5 +38,5 @@ thread_switch:
 	ld s9, 88(a1)
 	ld s10, 96(a1)
 	ld s11, 104(a1)
-	#TODO
+	#TODO, Uthread: switching between threads
 	ret    /* return to ra */
