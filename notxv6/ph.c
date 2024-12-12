@@ -34,13 +34,23 @@ insert(int key, int value, struct entry **p, struct entry *n)
   e->value = value;
   e->next = n;
   *p = e;
+  //TODO, Using threads
+  //p --> e --> original_first --> ...
+  //TODO, Using threads
 }
+
+//TODO, Using threads
+pthread_mutex_t bkt_lock[NBUCKET];
+//TODO, Using threads
 
 static 
 void put(int key, int value)
 {
   int i = key % NBUCKET;
 
+  //TODO, Using threads
+  pthread_mutex_lock(&bkt_lock[i]);
+  //TODO, Using threads
   // is the key already present?
   struct entry *e = 0;
   for (e = table[i]; e != 0; e = e->next) {
@@ -54,20 +64,30 @@ void put(int key, int value)
     // the new is new.
     insert(key, value, &table[i], table[i]);
   }
+  //TODO, Using threads
+  pthread_mutex_unlock(&bkt_lock[i]);
+  //TODO, Using threads
 
 }
 
+//TODO, Using threads
+// Get correspond key
+//TODO, Using threads
 static struct entry*
 get(int key)
 {
   int i = key % NBUCKET;
 
-
+  //TODO, Using threads
+  pthread_mutex_lock(&bkt_lock[i]);
+  //TODO, Using threads
   struct entry *e = 0;
   for (e = table[i]; e != 0; e = e->next) {
     if (e->key == key) break;
   }
-
+  //TODO, Using threads
+  pthread_mutex_unlock(&bkt_lock[i]);
+  //TODO, Using threads
   return e;
 }
 
