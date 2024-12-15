@@ -106,7 +106,7 @@ e1000_transmit(struct mbuf *m)
 
   acquire(&e1000_lock);
   uint idx = regs[E1000_TDT];
-  struct tx_desc *desc = &regs[idx];
+  struct tx_desc *desc = &tx_ring[idx];
 
   if(!(desc -> status & E1000_TXD_STAT_DD)){
     release(&e1000_lock);
@@ -117,7 +117,7 @@ e1000_transmit(struct mbuf *m)
     mbuffree(tx_mbufs[idx]);
   }
 
-  desc -> addr = m -> head;
+  desc -> addr = (uint64)m -> head;
   desc -> length = m -> len;
 
   desc -> cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS;
@@ -147,7 +147,7 @@ e1000_recv(void)
   //TODO, Your Job
   while(1){
     uint idx = (regs[E1000_RDT]+1)%RX_RING_SIZE;
-    struct rx_desc *desc = &regs[idx];
+    struct rx_desc *desc = &rx_ring[idx];
 
     if(!(desc->status && E1000_RXD_STAT_DD)){
       return;
@@ -165,7 +165,7 @@ e1000_recv(void)
     net_rx(rx_mbufs[idx]);
 
     rx_mbufs[idx] = mbufalloc(0);
-    desc -> addr = rx_mbufs[idx] -> head;
+    desc -> addr = (uint64)rx_mbufs[idx] -> head;
     desc -> status = 0;
     regs[E1000_RDT] = idx;
   }
