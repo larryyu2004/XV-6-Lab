@@ -120,7 +120,7 @@ e1000_transmit(struct mbuf *m)
   desc -> addr = (uint64)m -> head;
   desc -> length = m -> len;
 
-  desc -> cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS;
+  desc -> cmd = E1000_TXD_CMD_RS | E1000_TXD_CMD_EOP;
 
   tx_mbufs[idx] = m;
   regs[E1000_TDT] = (idx+1) % TX_RING_SIZE;
@@ -149,21 +149,14 @@ e1000_recv(void)
     uint idx = (regs[E1000_RDT]+1)%RX_RING_SIZE;
     struct rx_desc *desc = &rx_ring[idx];
 
-    if(!(desc->status && E1000_RXD_STAT_DD)){
+    if(!(desc->status & E1000_RXD_STAT_DD)){
       return;
     }
 
     rx_mbufs[idx] -> len = desc -> length;
-    memset(rx_ring, 0, sizeof(rx_ring));
-    for(int i = 0; i < RX_RING_SIZE; i++){
-      rx_mbufs[i] = mbufalloc(0);
-      if(!rx_mbufs[i]){
-        panic("e1000\n");
-      }
-      rx_ring[i].addr = (uint64) rx_mbufs[i]->head;
-    }
     net_rx(rx_mbufs[idx]);
 
+    
     rx_mbufs[idx] = mbufalloc(0);
     desc -> addr = (uint64)rx_mbufs[idx] -> head;
     desc -> status = 0;
