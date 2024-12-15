@@ -156,7 +156,6 @@ e1000_recv(void)
     rx_mbufs[idx] -> len = desc -> length;
     net_rx(rx_mbufs[idx]);
 
-    
     rx_mbufs[idx] = mbufalloc(0);
     desc -> addr = (uint64)rx_mbufs[idx] -> head;
     desc -> status = 0;
