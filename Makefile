@@ -1,10 +1,3 @@
-
-# To compile and run with a lab solution, set the lab name in lab.mk
-# (e.g., LB=util).  Run make grade to test solution with the lab's
-# grade script (e.g., grade-lab-util).
-
--include conf/lab.mk
-
 K=kernel
 U=user
 
@@ -37,27 +30,6 @@ OBJS = \
   $K/plic.o \
   $K/virtio_disk.o
 
-ifeq ($(LAB),pgtbl)
-OBJS += \
-	$K/vmcopyin.o
-endif
-
-ifeq ($(LAB),$(filter $(LAB), pgtbl lock))
-OBJS += \
-	$K/stats.o\
-	$K/sprintf.o
-endif
-
-
-ifeq ($(LAB),net)
-OBJS += \
-	$K/e1000.o \
-	$K/net.o \
-	$K/sysnet.o \
-	$K/pci.o
-endif
-
-
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
 #TOOLPREFIX = 
@@ -68,10 +40,8 @@ TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' 
 	then echo 'riscv64-unknown-elf-'; \
 	elif riscv64-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
 	then echo 'riscv64-linux-gnu-'; \
-	elif riscv64-unknown-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
-	then echo 'riscv64-unknown-linux-gnu-'; \
 	else echo "***" 1>&2; \
-	echo "*** Error: Couldn't find a riscv64 version of GCC/binutils." 1>&2; \
+	echo "*** Error: Couldn't find an riscv64 version of GCC/binutils." 1>&2; \
 	echo "*** To turn off this error, run 'gmake TOOLPREFIX= ...'." 1>&2; \
 	echo "***" 1>&2; exit 1; fi)
 endif
@@ -85,22 +55,11 @@ OBJCOPY = $(TOOLPREFIX)objcopy
 OBJDUMP = $(TOOLPREFIX)objdump
 
 CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb
-
-ifdef LAB
-LABUPPER = $(shell echo $(LAB) | tr a-z A-Z)
-XCFLAGS += -DSOL_$(LABUPPER) -DLAB_$(LABUPPER)
-endif
-
-CFLAGS += $(XCFLAGS)
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
 CFLAGS += -I.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
-
-ifeq ($(LAB),net)
-CFLAGS += -DNET_TESTS_PORT=$(SERVERPORT)
-endif
 
 # Disable PIE when possible (for Ubuntu 16.10 toolchain)
 ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]no-pie'),)
@@ -118,7 +77,7 @@ $K/kernel: $(OBJS) $K/kernel.ld $U/initcode
 	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
 $U/initcode: $U/initcode.S
-	$(CC) $(CFLAGS) -march=rv64g -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
+	$(CC) $(CFLAGS) -nostdinc -I. -Ikernel -c $U/initcode.S -o $U/initcode.o
 	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o $U/initcode.out $U/initcode.o
 	$(OBJCOPY) -S -O binary $U/initcode.out $U/initcode
 	$(OBJDUMP) -S $U/initcode.o > $U/initcode.asm
@@ -127,10 +86,6 @@ tags: $(OBJS) _init
 	etags *.S *.c
 
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
-
-ifeq ($(LAB),$(filter $(LAB), pgtbl lock))
-ULIB += $U/statistics.o
-endif
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
@@ -149,8 +104,8 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
-mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
-	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
+mkfs/mkfs: mkfs/mkfs.c $K/fs.h
+	gcc -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -172,78 +127,11 @@ UPROGS=\
 	$U/_sh\
 	$U/_stressfs\
 	$U/_usertests\
-	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
 
-
-
-
-ifeq ($(LAB),$(filter $(LAB), pgtbl lock))
-UPROGS += \
-	$U/_stats
-endif
-
-ifeq ($(LAB),traps)
-UPROGS += \
-	$U/_call\
-	$U/_bttest
-endif
-
-ifeq ($(LAB),lazy)
-UPROGS += \
-	$U/_lazytests
-endif
-
-ifeq ($(LAB),cow)
-UPROGS += \
-	$U/_cowtest
-endif
-
-ifeq ($(LAB),thread)
-UPROGS += \
-	$U/_uthread
-
-$U/uthread_switch.o : $U/uthread_switch.S
-	$(CC) $(CFLAGS) -c -o $U/uthread_switch.o $U/uthread_switch.S
-
-$U/_uthread: $U/uthread.o $U/uthread_switch.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_uthread $U/uthread.o $U/uthread_switch.o $(ULIB)
-	$(OBJDUMP) -S $U/_uthread > $U/uthread.asm
-
-ph: notxv6/ph.c
-	gcc -o ph -g -O2 notxv6/ph.c -pthread
-
-barrier: notxv6/barrier.c
-	gcc -o barrier -g -O2 notxv6/barrier.c -pthread
-endif
-
-ifeq ($(LAB),lock)
-UPROGS += \
-	$U/_kalloctest\
-	$U/_bcachetest
-endif
-
-ifeq ($(LAB),fs)
-UPROGS += \
-	$U/_bigfile
-endif
-
-
-
-ifeq ($(LAB),net)
-UPROGS += \
-	$U/_nettests
-endif
-
-UEXTRA=
-ifeq ($(LAB),util)
-	UEXTRA += user/xargstest.sh
-endif
-
-
-fs.img: mkfs/mkfs README $(UEXTRA) $(UPROGS)
-	mkfs/mkfs fs.img README $(UEXTRA) $(UPROGS)
+fs.img: mkfs/mkfs README $(UPROGS)
+	mkfs/mkfs fs.img README $(UPROGS)
 
 -include kernel/*.d user/*.d
 
@@ -264,20 +152,8 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 ifndef CPUS
 CPUS := 3
 endif
-ifeq ($(LAB),fs)
-CPUS := 1
-endif
-
-FWDPORT = $(shell expr `id -u` % 5000 + 25999)
-
-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
-QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
-QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
-
-ifeq ($(LAB),net)
-QEMUOPTS += -netdev user,id=net0,hostfwd=udp::$(FWDPORT)-:2000 -object filter-dump,id=net0,netdev=net0,file=packets.pcap
-QEMUOPTS += -device e1000,netdev=net0,bus=pcie.0
-endif
+QEMUOPTS = -machine virt -kernel $K/kernel -m 3G -smp $(CPUS) -nographic
+QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
@@ -286,105 +162,49 @@ qemu: $K/kernel fs.img
 	sed "s/:1234/:$(GDBPORT)/" < $^ > $@
 
 qemu-gdb: $K/kernel .gdbinit fs.img
-	@echo "*** Now run 'gdb' in another window." 1>&2
+	@echo "*** Now run 'gdb'." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-ifeq ($(LAB),net)
-# try to generate a unique port for the echo server
-SERVERPORT = $(shell expr `id -u` % 5000 + 25099)
+# CUT HERE
+# prepare dist for students
+# after running make dist, probably want to
+# rename it to rev0 or rev1 or so on and then
+# check in that version.
 
-server:
-	python3 server.py $(SERVERPORT)
+EXTRA=\
+	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
+	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
+	printf.c umalloc.c\
+	README dot-bochsrc *.pl \
+	.gdbinit.tmpl gdbutil\
 
-ping:
-	python3 ping.py $(FWDPORT)
-endif
+dist:
+	rm -rf dist
+	mkdir dist
+	for i in $(FILES); \
+	do \
+		grep -v PAGEBREAK $$i >dist/$$i; \
+	done
+	sed '/CUT HERE/,$$d' Makefile >dist/Makefile
+	echo >dist/runoff.spec
+	cp $(EXTRA) dist
 
-##
-##  FOR testing lab grading script
-##
+dist-test:
+	rm -rf dist
+	make dist
+	rm -rf dist-test
+	mkdir dist-test
+	cp dist/* dist-test
+	cd dist-test; $(MAKE) print
+	cd dist-test; $(MAKE) bochs || true
+	cd dist-test; $(MAKE) qemu
 
-ifneq ($(V),@)
-GRADEFLAGS += -v
-endif
+# update this rule (change rev#) when it is time to
+# make a new revision.
+tar:
+	rm -rf /tmp/xv6
+	mkdir -p /tmp/xv6
+	cp dist/* dist/.gdbinit.tmpl /tmp/xv6
+	(cd /tmp; tar cf - xv6) | gzip >xv6-rev10.tar.gz  # the next one will be 10 (9/17)
 
-print-gdbport:
-	@echo $(GDBPORT)
-
-grade:
-	@echo $(MAKE) clean
-	@$(MAKE) clean || \
-          (echo "'make clean' failed.  HINT: Do you have another running instance of xv6?" && exit 1)
-	./grade-lab-$(LAB) $(GRADEFLAGS)
-
-##
-## FOR web handin
-##
-
-
-WEBSUB := https://6828.scripts.mit.edu/2020/handin.py
-
-handin: tarball-pref myapi.key
-	@SUF=$(LAB); \
-	curl -f -F file=@lab-$$SUF-handin.tar.gz -F key=\<myapi.key $(WEBSUB)/upload \
-	    > /dev/null || { \
-		echo ; \
-		echo Submit seems to have failed.; \
-		echo Please go to $(WEBSUB)/ and upload the tarball manually.; }
-
-handin-check:
-	@if ! test -d .git; then \
-		echo No .git directory, is this a git repository?; \
-		false; \
-	fi
-	@if test "$$(git symbolic-ref HEAD)" != refs/heads/$(LAB); then \
-		git branch; \
-		read -p "You are not on the $(LAB) branch.  Hand-in the current branch? [y/N] " r; \
-		test "$$r" = y; \
-	fi
-	@if ! git diff-files --quiet || ! git diff-index --quiet --cached HEAD; then \
-		git status -s; \
-		echo; \
-		echo "You have uncomitted changes.  Please commit or stash them."; \
-		false; \
-	fi
-	@if test -n "`git status -s`"; then \
-		git status -s; \
-		read -p "Untracked files will not be handed in.  Continue? [y/N] " r; \
-		test "$$r" = y; \
-	fi
-
-UPSTREAM := $(shell git remote -v | grep -m 1 "xv6-labs-2020" | awk '{split($$0,a," "); print a[1]}')
-
-tarball: handin-check
-	git archive --format=tar HEAD | gzip > lab-$(LAB)-handin.tar.gz
-
-tarball-pref: handin-check
-	@SUF=$(LAB); \
-	git archive --format=tar HEAD > lab-$$SUF-handin.tar; \
-	git diff $(UPSTREAM)/$(LAB) > /tmp/lab-$$SUF-diff.patch; \
-	tar -rf lab-$$SUF-handin.tar /tmp/lab-$$SUF-diff.patch; \
-	gzip -c lab-$$SUF-handin.tar > lab-$$SUF-handin.tar.gz; \
-	rm lab-$$SUF-handin.tar; \
-	rm /tmp/lab-$$SUF-diff.patch; \
-
-myapi.key:
-	@echo Get an API key for yourself by visiting $(WEBSUB)/
-	@read -p "Please enter your API key: " k; \
-	if test `echo "$$k" |tr -d '\n' |wc -c` = 32 ; then \
-		TF=`mktemp -t tmp.XXXXXX`; \
-		if test "x$$TF" != "x" ; then \
-			echo "$$k" |tr -d '\n' > $$TF; \
-			mv -f $$TF $@; \
-		else \
-			echo mktemp failed; \
-			false; \
-		fi; \
-	else \
-		echo Bad API key: $$k; \
-		echo An API key should be 32 characters long.; \
-		false; \
-	fi;
-
-
-.PHONY: handin tarball tarball-pref clean grade handin-check
+.PHONY: dist-test dist
