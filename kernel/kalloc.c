@@ -27,13 +27,11 @@ struct {
 } kmem[NCPU];
 //TODO, Memory allocator
 
-extern int snprintf(char *buf, int sz, char *fmt, ...);
 void
 kinit()
 {
   //TODO, Memory allocator
   for(int i = 0; i < NCPU; i++){
-    snprintf(kmem[i].lock_name, sizeof(kmem[i].lock_name), "kmem_%d", i);
     initlock(&kmem[i].lock, kmem[i].lock_name);
   }
   //TODO, Memory allocator
