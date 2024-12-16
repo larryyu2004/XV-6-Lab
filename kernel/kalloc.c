@@ -27,6 +27,7 @@ struct {
 } kmem[NCPU];
 //TODO, Memory allocator
 
+extern int snprintf(char *buf, int sz, char *fmt, ...);
 void
 kinit()
 {
