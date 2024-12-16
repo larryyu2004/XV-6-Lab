@@ -18,23 +18,15 @@ struct run {
   struct run *next;
 };
 
-//TODO, Memory allocator
 struct {
   struct spinlock lock;
   struct run *freelist;
-
-  char lock_name[7];
-} kmem[NCPU];
-//TODO, Memory allocator
+} kmem;
 
 void
 kinit()
 {
-  //TODO, Memory allocator
-  for(int i = 0; i < NCPU; i++){
-    initlock(&kmem[i].lock, kmem[i].lock_name);
-  }
-  //TODO, Memory allocator
+  initlock(&kmem.lock, "kmem");
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -64,17 +56,10 @@ kfree(void *pa)
 
   r = (struct run*)pa;
 
-  //TODO, Memory allocator
-  //turn interrupts off
-  push_off();
-  int id = cpuid();
-  acquire(&kmem[id].lock);
-  r->next = kmem[id].freelist;
-  kmem[id].freelist = r;
-  release(&kmem[id].lock);
-  pop_off();
-  //turn interrupts on
-  //TODO, Memory allocator
+  acquire(&kmem.lock);
+  r->next = kmem.freelist;
+  kmem.freelist = r;
+  release(&kmem.lock);
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -84,54 +69,13 @@ void *
 kalloc(void)
 {
   struct run *r;
-  //TODO, Memory allocator
-  //turn interrupts off
-  push_off();
-  int id = cpuid();
-  acquire(&kmem[id].lock);
-  r = kmem[id].freelist;
-  if(r){
-    // If CPU freelist
-    kmem[id].freelist = r->next;
-  }else{
-    // !If CPU freelist, get freelist from other CPUs
-    int success = 0;
-    for(int i = 0; i < NCPU; i++){
-      if(i == id) continue;
-      acquire(&kmem[i].lock);
-      struct run *p = kmem[i].freelist;
-      if(p){
-        // steal half of memory
-        struct run *fp = p;
-        struct run *pre = p;
-        while(fp && fp->next){
-          fp = fp->next->next;
-          pre = p;
-          p = p->next;
-        }
-        kmem[id].freelist = kmem[i].freelist;
-        if(p == kmem[i].freelist){
-          // only have one page
-          kmem[i].freelist = 0;
-        }
-        else{
-          kmem[i].freelist = p;
-          pre->next = 0;
-        }
-        success = 1;
-      }
-      release(&kmem[i].lock);
-      if(success){
-        r = kmem[id].freelist;
-        kmem[id].freelist = r -> next;
-        break;
-      }
-    }
-  }
-  release(&kmem[id].lock);
-  pop_off();
-  //turn interrupts on
-  //TODO, Memory allocator
+
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  if(r)
+    kmem.freelist = r->next;
+  release(&kmem.lock);
+
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
