@@ -103,7 +103,7 @@ bget(uint dev, uint blockno)
   for(b = bcache.buf; b < bcache.buf + NBUF; b++){
     if(b->refcnt == 0){
       if(lruBuf == 0){
-        lruBuf == 0;
+        lruBuf = b;
         continue;
       }
       if(b->tick < lruBuf->tick){
