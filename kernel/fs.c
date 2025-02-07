@@ -404,7 +404,7 @@ bmap(struct inode *ip, uint bn)
   //TODO Large files
   bn -= NINDIRECT;
   if (bn < NBI_INDIRECT) {
-    if ((addr = ip -> addrs[NDIRECT]) == 0)
+    if ((addr = ip -> addrs[NDIRECT+1]) == 0)
       ip -> addrs[NDIRECT+1] = addr = balloc(ip -> dev);
     bp = bread(ip -> dev, addr);
     a = (uint*)bp -> data;
@@ -417,7 +417,7 @@ bmap(struct inode *ip, uint bn)
     brelse(bp);
     bp = bread(ip -> dev, addr);
     a = (uint*)bp -> data;
-    if ((addr = a[bn % NINDIRECT] == 0)) {
+    if ((addr = a[bn % NINDIRECT]) == 0) {
       a[bn % NINDIRECT] = addr = balloc(ip -> dev);
       log_write(bp);
     }
