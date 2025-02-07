@@ -401,6 +401,31 @@ bmap(struct inode *ip, uint bn)
     return addr;
   }
 
+  //TODO Large files
+  bn -= NINDIRECT;
+  if (bn < NBI_INDIRECT) {
+    if ((addr = ip -> addrs[NDIRECT]) == 0)
+      ip -> addrs[NDIRECT+1] = addr = balloc(ip -> dev);
+    bp = bread(ip -> dev, addr);
+    a = (uint*)bp -> data;
+
+    uint idx_b1 = bn / NINDIRECT;
+    if ((addr = a[idx_b1] == 0)) {
+      a[idx_b1] = addr = balloc(ip -> dev);
+      log_write(bp);
+    }
+    brelse(bp);
+    bp = bread(ip -> dev, addr);
+    a = (uint*)bp -> data;
+    if ((addr = a[bn % NINDIRECT] == 0)) {
+      a[bn % NINDIRECT] = addr = balloc(ip -> dev);
+      log_write(bp);
+    }
+    brelse(bp);
+    return addr;
+  }
+  //TODO Large files
+
   panic("bmap: out of range");
 }
 
