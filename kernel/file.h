@@ -27,7 +27,7 @@ struct inode {
   short nlink;
   uint size;
   //TODO Large files
-  uint addrs[NDIRECT+1];
+  uint addrs[NDIRECT+2];
   //TODO Large files
 };
 
