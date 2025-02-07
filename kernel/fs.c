@@ -387,7 +387,7 @@ bmap(struct inode *ip, uint bn)
   }
   bn -= NDIRECT;
 
-  if(bn < NINDIRECT){
+  if(bn < NINDIRECT){ // singly-indirect
     // Load indirect block, allocating if necessary.
     if((addr = ip->addrs[NDIRECT]) == 0)
       ip->addrs[NDIRECT] = addr = balloc(ip->dev);
@@ -400,34 +400,29 @@ bmap(struct inode *ip, uint bn)
     brelse(bp);
     return addr;
   }
-
-  //TODO Large files
   bn -= NINDIRECT;
-  if (bn < NBI_INDIRECT) {
-    if ((addr = ip -> addrs[NDIRECT+1]) == 0)
-      ip -> addrs[NDIRECT+1] = addr = balloc(ip -> dev);
-    bp = bread(ip -> dev, addr);
-    a = (uint*)bp -> data;
 
-    uint idx_b1 = bn / NINDIRECT;
-    if ((addr = a[idx_b1]) == 0) {
-      a[idx_b1] = addr = balloc(ip -> dev);
+  if(bn < NINDIRECT * NINDIRECT) { // doubly-indirect
+    // Load indirect block, allocating if necessary.
+    if((addr = ip->addrs[NDIRECT+1]) == 0)
+      ip->addrs[NDIRECT+1] = addr = balloc(ip->dev);
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    if((addr = a[bn/NINDIRECT]) == 0){
+      a[bn/NINDIRECT] = addr = balloc(ip->dev);
       log_write(bp);
     }
     brelse(bp);
-
-    struct buf *bp2;
-    bp2 = bread(ip -> dev, addr);
-    a = (uint*)bp2 -> data;
-    uint idx_b2 = bn % NINDIRECT;
-    if ((addr = a[idx_b2]) == 0) {
-      a[idx_b2] = addr = balloc(ip -> dev);
-      log_write(bp2);
+    bn %= NINDIRECT;
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    if((addr = a[bn]) == 0){
+      a[bn] = addr = balloc(ip->dev);
+      log_write(bp);
     }
-    brelse(bp2);
+    brelse(bp);
     return addr;
   }
-  //TODO Large files
 
   panic("bmap: out of range");
 }
@@ -460,27 +455,25 @@ itrunc(struct inode *ip)
     ip->addrs[NDIRECT] = 0;
   }
 
-  //TODO Large files
-  if(ip -> addrs[NDIRECT+1]) {
-    bp = bread(ip -> dev, ip -> addrs[NDIRECT+1]);
-    a = (uint*)bp -> data;
-    for(j = 0; j < NINDIRECT; j++) {
+  if(ip->addrs[NDIRECT+1]){
+    bp = bread(ip->dev, ip->addrs[NDIRECT+1]);
+    a = (uint*)bp->data;
+    for(j = 0; j < NINDIRECT; j++){
       if(a[j]) {
-        struct buf* bp2 = bread(ip -> dev, a[j]);
-        uint *a2 = (uint*) bp2 -> data;
-        for(int k = 0; k < NINDIRECT; k++) {
+        struct buf *bp2 = bread(ip->dev, a[j]);
+        uint *a2 = (uint*)bp2->data;
+        for(int k = 0; k < NINDIRECT; k++){
           if(a2[k])
             bfree(ip->dev, a2[k]);
         }
         brelse(bp2);
-        bfree(ip -> dev, a[j]);
+        bfree(ip->dev, a[j]);
       }
     }
     brelse(bp);
-    bfree(ip -> dev, ip -> addrs[NDIRECT+1]);
-    ip -> addrs[NDIRECT+1] = 0;
+    bfree(ip->dev, ip->addrs[NDIRECT+1]);
+    ip->addrs[NDIRECT + 1] = 0;
   }
-  //TODO Large files
 
   ip->size = 0;
   iupdate(ip);
