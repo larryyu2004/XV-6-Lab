@@ -25,10 +25,10 @@ struct superblock {
 #define FSMAGIC 0x10203040
 
 //TODO Large files
-#define NDIRECT 11
+#define NDIRECT 12
 #define NINDIRECT (BSIZE / sizeof(uint))
-#define NBI_INDIRECT NINDIRECT*NINDIRECT
-#define MAXFILE (NDIRECT + NINDIRECT + NBI_INDIRECT)
+//#define NBI_INDIRECT NINDIRECT*NINDIRECT
+#define MAXFILE (NDIRECT + NINDIRECT)
 //TODO Large files
 
 // On-disk inode structure
@@ -39,7 +39,7 @@ struct dinode {
   short nlink;          // Number of links to inode in file system
   uint size;            // Size of file (bytes)
   //TODO Large files
-  uint addrs[NDIRECT+2];   // Data block addresses
+  uint addrs[NDIRECT+1];   // Data block addresses
   //TODO Large files
 };
 
