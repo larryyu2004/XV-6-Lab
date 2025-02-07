@@ -415,13 +415,16 @@ bmap(struct inode *ip, uint bn)
       log_write(bp);
     }
     brelse(bp);
-    bp = bread(ip -> dev, addr);
-    a = (uint*)bp -> data;
-    if ((addr = a[bn % NINDIRECT]) == 0) {
-      a[bn % NINDIRECT] = addr = balloc(ip -> dev);
-      log_write(bp);
+
+    struct buf *bp2;
+    bp2 = bread(ip -> dev, addr);
+    a = (uint*)bp2 -> data;
+    uint idx_b2 = bn % NINDIRECT;
+    if ((addr = a[idx_b2]) == 0) {
+      a[idx_b2] = addr = balloc(ip -> dev);
+      log_write(bp2);
     }
-    brelse(bp);
+    brelse(bp2);
     return addr;
   }
   //TODO Large files
@@ -457,7 +460,27 @@ itrunc(struct inode *ip)
     ip->addrs[NDIRECT] = 0;
   }
 
-  
+  //TODO Large files
+  if(ip -> addrs[NDIRECT+1]) {
+    bp = bread(ip -> dev, ip -> addrs[NDIRECT+1]);
+    a = (uint*)bp -> data;
+    for(j = 0; j < NINDIRECT; j++) {
+      if(a[j]) {
+        struct buf* bp2 = bread(ip -> dev, a[j]);
+        uint *a2 = (uint*) bp2 -> data;
+        for(int k = 0; k < NINDIRECT; k++) {
+          if(a2[k])
+            bfree(ip->dev, a2[k]);
+        }
+        brelse(bp2);
+        bfree(ip -> dev, a[j]);
+      }
+    }
+    brelse(bp);
+    bfree(ip -> dev, ip -> addrs[NDIRECT+1]);
+    ip -> addrs[NDIRECT+1] = 0;
+  }
+  //TODO Large files
 
   ip->size = 0;
   iupdate(ip);
