@@ -410,7 +410,7 @@ bmap(struct inode *ip, uint bn)
     a = (uint*)bp -> data;
 
     uint idx_b1 = bn / NINDIRECT;
-    if ((addr = a[idx_b1] == 0)) {
+    if ((addr = a[idx_b1]) == 0) {
       a[idx_b1] = addr = balloc(ip -> dev);
       log_write(bp);
     }
@@ -463,7 +463,7 @@ itrunc(struct inode *ip)
     a = (uint*)bp -> data;
     for(j = 0; j < NINDIRECT; j++) {
       if(a[j]) {
-        struct buf* bp2 = bread(ip -> dev, a[i]);
+        struct buf* bp2 = bread(ip -> dev, a[j]);
         uint *a2 = (uint*) bp2 -> data;
         for(int k = 0; k < NINDIRECT; k++) {
           if(a2[k])
