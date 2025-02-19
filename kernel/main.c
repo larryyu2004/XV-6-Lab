@@ -29,6 +29,9 @@ main()
     fileinit();      // file table
     virtio_disk_init(); // emulated hard disk
     userinit();      // first user process
+    // TODO mmap
+    vma_init();
+    // TODO mmap
     __sync_synchronize();
     started = 1;
   } else {

@@ -36,3 +36,7 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+# TODO mmap
+entry("mmap");
+entry("munmap");
+# TODO mmap

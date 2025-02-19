@@ -8,6 +8,9 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+// TODO mmap
+struct vm_area_struct;
+// TODO mmap
 
 // bio.c
 void            binit(void);
@@ -104,6 +107,9 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+// TODO mmap
+int             lazy_grow_proc(int);
+// TODO mmap
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -181,6 +187,13 @@ void            plic_complete(int);
 void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
+
+// TODO mmap
+// vma.c
+void            vma_init(void);
+struct          vm_area_struct *vma_alloc(void);
+void            vma_free(struct vm_area_struct *);
+// TODO mmap
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

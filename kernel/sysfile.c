@@ -15,6 +15,9 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+// TODO mmap
+#include "vma.h"
+// TODO mmap
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -484,3 +487,102 @@ sys_pipe(void)
   }
   return 0;
 }
+
+// TODO mmap
+uint64
+sys_mmap (void) 
+{
+  struct vm_area_struct *vmap;
+  struct proc *pr;
+  int length, prot, flags, fd, i;
+  uint64 sz;
+
+  if(argint(1, &length) < 0 || argint(2, &prot) < 0 || argint(3, &flags) < 0 || argint(4, &fd) < 0) {
+    return 0xffffffffffffffff;
+  }
+
+  pr = myproc();
+
+  if(!pr -> ofile[fd] -> readable) {
+    if(prot & PROT_READ) {
+      return 0xffffffffffffffff;
+    }
+  }
+
+  if(!pr -> ofile[fd] -> writable) {
+    if(prot & PROT_WRITE && flags == MAP_SHARED) {
+      return 0xffffffffffffffff;
+    }
+  }
+
+  if((vmap = vma_alloc()) == 0) {
+    return 0xffffffffffffffff;
+  }
+
+  acquire(&pr -> lock);
+  for(int i = 0; i < NOFILE; i++) {
+    if(pr -> areaps[i] == 0) {
+      pr -> areaps[i] = vmap;
+      release(&pr -> lock);
+      break;
+    }
+  }
+
+  if(i == NOFILE) {
+    return 0xffffffffffffffff;
+  }
+
+  sz = pr -> sz;
+  if(lazy_grow_proc(length) < 0) {
+    return 0xffffffffffffffff;
+  }
+
+  vmap -> addr = (char*) sz;
+  vmap -> length = length;
+  vmap -> prot = (prot & PROT_READ) | (prot & PROT_WRITE);
+  vmap -> flags = flags;
+  vmap -> file = pr -> ofile[fd];
+  filedup(pr -> ofile[fd]);
+  return sz;
+}
+
+uint64
+sys_munmap(void)
+{
+  struct proc *pr = myproc();
+  int startAddr, length;
+  if(argint(0, &startAddr) < 0 || argint(1, &length) < 0) {
+    return -1;
+  }
+
+  for(int i = 0; i < NOFILE; i++) {
+    if(pr -> areaps[i] == 0) {
+      continue;
+    }
+    if((uint64)pr->areaps[i]->addr == startAddr) {
+      if(length >= pr->areaps[i]->length) {
+        length = pr->areaps[i]->length;
+      }
+      if(pr->areaps[i]->prot & PROT_WRITE && pr->areaps[i]->flags == MAP_SHARED) {
+        begin_op();
+        ilock(pr->areaps[i]->file->ip);
+        writei(pr->areaps[i]->file->ip, 1, (uint64)startAddr, 0, length);
+        iunlock(pr->areaps[i]->file->ip);
+        end_op();
+      }
+      uvmunmap(pr->pagetable, (uint64)startAddr, length/PGSIZE, 1);
+      if(length == pr->areaps[i]->length) {
+        fileclose(pr->areaps[i]->file);
+        vma_free(pr->areaps[i]);
+        pr->areaps[i] = 0;
+        return 0;
+      } else {
+        pr->areaps[i]->addr += length;
+        pr-> areaps[i]->length -= length;
+        return 0;
+      }
+    }
+  }
+  return -1;
+}
+// TODO mmap

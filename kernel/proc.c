@@ -654,3 +654,11 @@ procdump(void)
     printf("\n");
   }
 }
+
+// TODO mmap
+int lazy_grow_proc (int n) {
+  struct proc *p = myproc();
+  p -> sz = p -> sz + n;
+  return 0;
+}
+// TODO mmap
